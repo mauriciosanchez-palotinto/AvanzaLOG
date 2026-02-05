@@ -1,4 +1,4 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { CreateVerificacionDto } from '../dto/create-verificacion.dto';
 
@@ -15,7 +15,14 @@ export class VerificacionService{
         if(!vehiculo){
             throw new NotFoundException(`Vehículo con ID ${data.vehiculoId} no encontrado`); 
         }
+        
+        //validacion 
+        const fechaVerif = new Date(data.fechaVerificacion);
+        const fechaVenc = new Date(data.fechaVencimiento);
 
+        if(fechaVenc <= fechaVerif){
+            throw new BadRequestException('La fecha vencimiento debe ser posterior a la fecha de verificacion')
+        }
         return this.prisma.verificacion.create({
             data: {
                 vehiculoId: data.vehiculoId,

@@ -1,4 +1,4 @@
-import { isDateString, IsInt,IsOptional, IsString, MaxLength, IsIn, IsDateString } from 'class-validator'
+import {  IsInt,IsOptional, IsString, MaxLength, IsIn, IsDateString } from 'class-validator'
 
 export class CreateVerificacionDto{
    @IsInt()

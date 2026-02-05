@@ -8,7 +8,7 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { UsuariosModule } from '@modules/usuarios/usuarios.module';
 import { VehiculosModule } from '@modules/vehiculos/vehiculos.module';
 import { UsoVehiculoModule } from '@modules/uso-vehiculo/uso-vehiculo.module';
-import { VerificacionModule } from '@modules/verificacion/verificacion.module';
+import { VerificacionModule } from '@/modules/verificacion/module/verificacion.module';
 import { CirculacionModule } from '@modules/circulacion/circulacion.module';
 import { NotificacionesModule } from '@modules/notificaciones/notificaciones.module';
 
