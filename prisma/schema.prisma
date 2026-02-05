@@ -1,0 +1,356 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================
+
+model Usuario {
+  id            Int      @id @default(autoincrement())
+  nombre        String   @db.VarChar(100)
+  email         String   @unique @db.VarChar(100)
+  telefono      String?  @db.VarChar(20)
+  passwordHash  String   @db.VarChar(255)
+  activo        Boolean  @default(true)
+  esAdmin       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  usos                  UsoVehiculo[]
+  notificaciones        Notificacion[]
+  auditoria             Auditoria[]
+  rolesAsignados        UsuarioRol[] @relation("UsuarioRoles")
+  lavadosRealizados     CicloLavado[]
+  usuarioBloqueosRealizados HistorialBloqueoVehiculo[] @relation("UsuarioBloqueo")
+  usuarioBloqueosDesbloqueados HistorialBloqueoVehiculo[] @relation("UsuarioDesbloqueo")
+  verificacionesRegistradas Verificacion[]
+
+  @@index([email])
+  @@index([activo])
+  @@map("usuario")
+}
+
+model Rol {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(50)
+  descripcion String?
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  usuariosConEsteRol UsuarioRol[]
+  permisos           RolPermiso[]
+
+  @@map("rol")
+}
+
+model UsuarioRol {
+  usuarioId Int
+  rolId     Int
+  assignedAt DateTime @default(now())
+
+  usuario Usuario @relation("UsuarioRoles", fields: [usuarioId], references: [id], onDelete: Cascade)
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, rolId])
+  @@index([usuarioId])
+  @@index([rolId])
+  @@map("usuario_rol")
+}
+
+model Permiso {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(100)
+  descripcion String?
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  roles RolPermiso[]
+
+  @@map("permiso")
+}
+
+model RolPermiso {
+  rolId     Int
+  permisoId Int
+  assignedAt DateTime @default(now())
+
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
+
+  @@id([rolId, permisoId])
+  @@index([rolId])
+  @@map("rol_permiso")
+}
+
+// ============================================
+// VEHÍCULOS
+// ============================================
+
+model Vehiculo {
+  id                 Int      @id @default(autoincrement())
+  marca              String   @db.VarChar(50)
+  modelo             String   @db.VarChar(50)
+  placa              String   @unique @db.VarChar(20)
+  ano                Int
+  color              String?  @db.VarChar(30)
+  activo             Boolean  @default(true)
+  estado             String   @default("disponible") @db.VarChar(20) // disponible, en_uso, bloqueado, mantenimiento
+  kilometrajeActual  Decimal  @default(0) @db.Decimal(10, 2)
+  gasolinaInicial    Decimal  @default(100) @db.Decimal(5, 2)
+  gasolinaFinal      Decimal  @default(50) @db.Decimal(5, 2)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relaciones
+  usos               UsoVehiculo[]
+  ciclosLavado       CicloLavado[]
+  verificaciones     Verificacion[]
+  bloqueos           HistorialBloqueoVehiculo[]
+  calendarioCirculacion CalendarioCirculacion[]
+
+  @@index([placa])
+  @@index([estado])
+  @@index([activo])
+  @@map("vehiculo")
+}
+
+// ============================================
+// SISTEMA DE PRÉSTAMO/DEVOLUCIÓN
+// ============================================
+
+model UsoVehiculo {
+  id                  Int      @id @default(autoincrement())
+  usuarioId           Int
+  vehiculoId          Int
+  cicloLavadoId       Int?
+
+  fechaInicio         DateTime @default(now())
+  fechaFin            DateTime?
+
+  kmInicial           Decimal  @db.Decimal(10, 2)
+  kmFinal             Decimal?  @db.Decimal(10, 2)
+  gasolinaInicial     Decimal  @db.Decimal(5, 2)
+  gasolinaFinal       Decimal? @db.Decimal(5, 2)
+
+  estadoDevolucion    String   @default("bueno") @db.VarChar(20) // excelente, bueno, regular, malo
+  observaciones       String?
+
+  debeLavar           Boolean  @default(false)
+  lavo                Boolean  @default(false)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relaciones
+  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  vehiculo            Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  cicloLavado         CicloLavado? @relation(fields: [cicloLavadoId], references: [id], onDelete: SetNull)
+  evidencias          Evidencia[]
+
+  @@index([usuarioId])
+  @@index([vehiculoId])
+  @@index([fechaInicio])
+  @@index([debeLavar])
+  @@index([cicloLavadoId])
+  @@map("uso_vehiculo")
+}
+
+// ============================================
+// SISTEMA DE LAVADO
+// ============================================
+
+model CicloLavado {
+  id                 Int      @id @default(autoincrement())
+  vehiculoId         Int
+  numeroCiclo        Int      @default(1)
+  fechaInicio        DateTime @default(now())
+  fechaLavado        DateTime?
+  usuarioLavadoId    Int?
+  completado         Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  // Relaciones
+  vehiculo           Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  usuarioLavado      Usuario? @relation(fields: [usuarioLavadoId], references: [id])
+  usos               UsoVehiculo[]
+
+  @@unique([vehiculoId, completado], name: "uq_ciclo_activo")
+  @@index([vehiculoId])
+  @@index([completado])
+  @@map("ciclo_lavado")
+}
+
+// ============================================
+// EVIDENCIAS FOTOGRÁFICAS
+// ============================================
+
+model Evidencia {
+  id              Int      @id @default(autoincrement())
+  usoId           Int
+  tipo            String   @db.VarChar(20) // inicio, fin, lavado, daño, general
+  urlArchivo      String   @db.VarChar(500)
+  nombreArchivo   String?  @db.VarChar(255)
+  createdAt       DateTime @default(now())
+
+  // Relaciones
+  uso             UsoVehiculo @relation(fields: [usoId], references: [id], onDelete: Cascade)
+
+  @@index([usoId])
+  @@index([tipo])
+  @@map("evidencia")
+}
+
+// ============================================
+// VERIFICACIÓN VEHICULAR
+// ============================================
+
+model Verificacion {
+  id                    Int      @id @default(autoincrement())
+  vehiculoId            Int
+  usuarioRegistroId     Int
+
+  fechaVerificacion     DateTime @default(now())
+  fechaVencimiento      DateTime
+  tipo                  String   @default("normal") @db.VarChar(20) // normal, doble, exenta
+  resultado             String   @db.VarChar(2) // 00=aprobado, 01=rechazado, 02=condicionado
+  comprobanteUrl        String?  @db.VarChar(500)
+  folioVerificacion     String?  @db.VarChar(50)
+  centroVerificacion    String?  @db.VarChar(100)
+  vigente               Boolean  @default(false)
+  observaciones         String?
+  createdAt             DateTime @default(now())
+
+  // Relaciones
+  vehiculo              Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  usuarioRegistro       Usuario  @relation(fields: [usuarioRegistroId], references: [id])
+
+  @@index([vehiculoId])
+  @@index([fechaVencimiento])
+  @@index([vigente])
+  @@map("verificacion")
+}
+
+// ============================================
+// CONTROL DE CIRCULACIÓN (Hoy No Circula)
+// ============================================
+
+model ReglaCirculacion {
+  id                 Int      @id @default(autoincrement())
+  ciudad             String   @default("CDMX") @db.VarChar(50)
+  tipoVehiculo       String   @default("particulares") @db.VarChar(30) // particulares, servicio, todos
+  digitoProhibido    String   @db.VarChar(10)
+  descripcionDias    String?  @db.VarChar(100)
+  fechaInicio        DateTime
+  fechaFin           DateTime?
+  horarioInicio      String   @default("05:00") @db.VarChar(5)
+  horarioFin         String   @default("22:00") @db.VarChar(5)
+  excepciones        String   @default("[]") // JSON
+  activo             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  // Relaciones
+  calendarioCirculacion CalendarioCirculacion[]
+
+  @@index([activo])
+  @@index([ciudad])
+  @@map("regla_circulacion")
+}
+
+model CalendarioCirculacion {
+  id                 Int      @id @default(autoincrement())
+  vehiculoId         Int
+  fecha              DateTime @db.Date
+  puedeCircular      Boolean
+  razon              String?  @db.VarChar(100)
+  reglaAplicadaId    Int?
+  calculadoEn        DateTime @default(now())
+
+  // Relaciones
+  vehiculo           Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  reglaAplicada      ReglaCirculacion? @relation(fields: [reglaAplicadaId], references: [id])
+
+  @@unique([vehiculoId, fecha])
+  @@index([vehiculoId])
+  @@index([fecha])
+  @@map("calendario_circulacion")
+}
+
+// ============================================
+// BLOQUEOS DE VEHÍCULOS
+// ============================================
+
+model HistorialBloqueoVehiculo {
+  id                   Int      @id @default(autoincrement())
+  vehiculoId           Int
+  tipo                 String   @db.VarChar(30) // verificacion_vencida, no_circula, mantenimiento, admin
+  fechaBloqueo         DateTime @default(now())
+  fechaDesbloqueo      DateTime?
+  motivo               String
+  usuarioBloqueoId     Int
+  usuarioDesbloqueId   Int?
+  activo               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+
+  // Relaciones
+  vehiculo             Vehiculo @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  usuarioBloqueo       Usuario  @relation("UsuarioBloqueo", fields: [usuarioBloqueoId], references: [id])
+  usuarioDesbloqueo    Usuario? @relation("UsuarioDesbloqueo", fields: [usuarioDesbloqueId], references: [id])
+
+  @@index([vehiculoId])
+  @@index([activo])
+  @@index([tipo])
+  @@map("bloqueo_vehiculo")
+}
+
+// ============================================
+// NOTIFICACIONES
+// ============================================
+
+model Notificacion {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int
+  tipo        String   @db.VarChar(30) // lavado_pendiente, devolucion_tardia, verificacion_vencida, recordatorio, general
+  mensaje     String
+  leida       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([leida])
+  @@map("notificacion")
+}
+
+// ============================================
+// AUDITORÍA
+// ============================================
+
+model Auditoria {
+  id              Int      @id @default(autoincrement())
+  tablaAfectada   String   @db.VarChar(50)
+  registroId      Int
+  accion          String   @db.VarChar(10) // INSERT, UPDATE, DELETE
+  datosAnteriores String?  // JSON
+  datosNuevos     String?  // JSON
+  usuarioId       Int?
+  createdAt       DateTime @default(now())
+
+  // Relaciones
+  usuario         Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([tablaAfectada])
+  @@index([usuarioId])
+  @@index([createdAt])
+  @@map("auditoria")
+}
