@@ -5,15 +5,27 @@ import { PrismaService } from '@common/prisma/prisma.service';
 export class VehiculosService {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  async findAll(filtro: 'activos' | 'inactivos' | 'todos' = 'activos') {
+    let whereCondition = {};
+
+    switch (filtro) {
+      case 'activos':
+        whereCondition = { activo: true };
+        break;
+      case 'inactivos':
+        whereCondition = { activo: false };
+        break;
+      case 'todos':
+        whereCondition = {};
+        break;
+      default:
+        whereCondition = { activo: true };
+        break;
+    }
+
     return this.prisma.vehiculo.findMany({
-      include: {
-        verificaciones: {
-          where: { vigente: true },
-          take: 1,
-          orderBy: { fechaVencimiento: 'desc' },
-        },
-      },
+      where: whereCondition,
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -93,13 +105,22 @@ export class VehiculosService {
 
   async toggleActivo(id: number) {
     const vehiculo = await this.prisma.vehiculo.findUnique({ where: { id } });
+    if (!vehiculo) return null;
+
+    const nuevoEstadoActivo = !vehiculo.activo;
+
     return this.prisma.vehiculo.update({
       where: { id },
-      data: { activo: !vehiculo?.activo },
+      data: { 
+        activo: nuevoEstadoActivo,
+        // Si se desactiva, cambiar estado a 'mantenimiento'. Si se activa, a 'disponible'
+        estado: nuevoEstadoActivo ? 'disponible' : 'mantenimiento'
+      },
       select: {
         id: true,
         placa: true,
         activo: true,
+        estado: true,
       },
     });
   }

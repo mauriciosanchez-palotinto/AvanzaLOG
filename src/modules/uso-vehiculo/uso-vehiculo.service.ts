@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+// import { CirculacionService } from '../circulacion/services/circulacion.service';
+import { IniciarViajeDto } from './dto/iniciar-viaje.dto';
 
 @Injectable()
 export class UsoVehiculoService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService,
+    // private circulacionService: CirculacionService
+  ) {}
 
   findAll() {
     return this.prisma.usoVehiculo.findMany({
@@ -64,36 +68,68 @@ export class UsoVehiculoService {
     });
   }
 
-  async iniciarViaje(usuarioId: number, vehiculoId: number, kmInicial: number, gasolinaInicial?: number) {
-    // Cambiar estado del vehículo a en_uso
-    await this.prisma.vehiculo.update({
-      where: { id: vehiculoId },
-      data: { estado: 'en_uso' },
-    });
+  async iniciarViaje(usuarioId: number, data: IniciarViajeDto) {
+    console.log('📌 INTENTO DE INICIO DE VIAJE');
+    console.log('Usuario ID:', usuarioId);
+    console.log('Datos recibidos:', data);
+    
+    // 1. Validar si circula hoy
+    // const estadoCirculacion = await this.circulacionService.verificarVehiculo(data.vehiculoId);
+    
+    // (Opcional: descomentar restricción)
+    /* 
+    if (!estadoCirculacion.puedeCircular) {
+       throw new BadRequestException(`El vehículo no puede circular hoy. Razón: ${estadoCirculacion.razon}`);
+    } 
+    */
 
-    // Crear registro de uso
-    return this.prisma.usoVehiculo.create({
-      data: {
-        usuarioId,
-        vehiculoId,
-        kmInicial: kmInicial,
-        gasolinaInicial: gasolinaInicial ?? 0,
-      },
-      include: {
-        usuario: {
-          select: {
-            nombre: true,
-            email: true,
-          },
-        },
-        vehiculo: {
-          select: {
-            placa: true,
-            marca: true,
-            modelo: true,
-          },
-        },
-      },
+    // 2. Validar vehículo (una sola consulta)
+    const vehiculo = await this.prisma.vehiculo.findUnique({ 
+        where: { id: data.vehiculoId } 
+    });
+    
+    console.log('🔍 Vehículo encontrado:', vehiculo);
+
+    if (!vehiculo) {
+        console.error('❌ Error: Vehículo no encontrado en BD');
+        throw new BadRequestException('Vehículo no encontrado');
+    }
+    
+    if (vehiculo.estado === 'en_uso') {
+        console.error('❌ Error: El vehículo ya figura como EN USO en la BD');
+        throw new BadRequestException('El vehículo ya está en uso');
+    }
+
+    // 3. Validación Odómetro (Corrección de tipos)
+    const kmActual = Number(vehiculo.kilometrajeActual) || 0;
+    
+     
+    if (kmActual > data.kmInicial){
+      throw new BadRequestException(
+        `Error de odómetro: El vehículo tiene ${kmActual} km registrados, no puedes iniciar con ${data.kmInicial} km.`
+      );
+    }
+    
+
+    // 4. Actualizar estado y crear viaje en una transacción
+    return this.prisma.$transaction(async (tx) => {
+        await tx.vehiculo.update({
+            where: { id: data.vehiculoId },
+            data: { estado: 'en_uso' },
+        });
+
+        return tx.usoVehiculo.create({
+            data: {
+                usuarioId,
+                vehiculoId: data.vehiculoId,
+                kmInicial: data.kmInicial,
+                gasolinaInicial: data.gasolinaInicial ?? 0,
+            },
+            include: {
+                usuario: { select: { nombre: true, email: true } },
+                vehiculo: { select: { placa: true, marca: true, modelo: true } },
+            },
+        });
     });
   }
 
@@ -151,7 +187,7 @@ export class UsoVehiculoService {
         data: {
           usuarioId: usuarioViaje.usuarioId,
           tipo: 'lavado_proximo',
-          mensaje: `⚠️ El próximo usuario debe lavar el vehículo ${usuarioViaje.vehiculo.placa}`,
+          mensaje: ` El próximo usuario debe lavar el vehículo ${usuarioViaje.vehiculo.placa}`,
         },
       });
     }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Put, Delete, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Put, Delete, Body, UseGuards, Query } from '@nestjs/common';
 import { VehiculosService } from './vehiculos.service';
 import { JwtGuard } from '@common/guards/jwt.guard';
 
@@ -7,8 +7,8 @@ export class VehiculosController {
   constructor(private readonly vehiculosService: VehiculosService) {}
 
   @Get()
-  findAll() {
-    return this.vehiculosService.findAll();
+  findAll(@Query('filtro') filtro?: 'activos' | 'inactivos' | 'todos') {
+    return this.vehiculosService.findAll(filtro);
   }
 
   @Get(':id')

@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsoVehiculoService } from './uso-vehiculo.service';
 import { EvidenciaService } from './evidencia.service';
 import { JwtGuard } from '@common/guards/jwt.guard';
+import { IniciarViajeDto } from './dto/iniciar-viaje.dto';
 
 @Controller('viajes')
 @UseGuards(JwtGuard)
@@ -33,8 +34,9 @@ export class UsoVehiculoController {
   }
 
   @Post('iniciar')
-  iniciar(@Body() body: { usuarioId: number; vehiculoId: number; kmInicial: number; gasolinaInicial?: number }) {
-    return this.usoVehiculoService.iniciarViaje(body.usuarioId, body.vehiculoId, body.kmInicial, body.gasolinaInicial);
+  iniciar(@Body() body: IniciarViajeDto, @Request() req) {
+    const usuarioId = req.user.userId || req.user.id;
+    return this.usoVehiculoService.iniciarViaje(usuarioId, body);
   }
 
   @Put(':id/finalizar')
