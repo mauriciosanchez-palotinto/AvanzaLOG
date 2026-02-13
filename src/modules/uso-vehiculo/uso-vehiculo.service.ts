@@ -57,6 +57,61 @@ export class UsoVehiculoService {
     });
   }
 
+  // Obtener viajes activos del usuario actual
+  findActivosPorUsuario(usuarioId: number) {
+    return this.prisma.usoVehiculo.findMany({
+      where: { 
+        fechaFin: null,
+        usuarioId: usuarioId,
+      },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nombre: true,
+            email: true,
+          },
+        },
+        vehiculo: {
+          select: {
+            id: true,
+            placa: true,
+            marca: true,
+            modelo: true,
+          },
+        },
+      },
+      orderBy: { fechaInicio: 'desc' },
+    });
+  }
+
+  // Obtener todos los viajes del usuario actual
+  findAllPorUsuario(usuarioId: number) {
+    return this.prisma.usoVehiculo.findMany({
+      where: { 
+        usuarioId: usuarioId,
+      },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            nombre: true,
+            email: true,
+          },
+        },
+        vehiculo: {
+          select: {
+            id: true,
+            placa: true,
+            marca: true,
+            modelo: true,
+          },
+        },
+      },
+      orderBy: { fechaInicio: 'desc' },
+    });
+  }
+
   findOne(id: number) {
     return this.prisma.usoVehiculo.findUnique({
       where: { id },

@@ -18,6 +18,18 @@ export class UsoVehiculoController {
     return this.usoVehiculoService.findActivos();
   }
 
+  @Get('mis-viajes/activos')
+  findMisViajesActivos(@Request() req) {
+    const usuarioId = req.user.userId || req.user.id;
+    return this.usoVehiculoService.findActivosPorUsuario(usuarioId);
+  }
+
+  @Get('mis-viajes')
+  findMisViajes(@Request() req) {
+    const usuarioId = req.user.userId || req.user.id;
+    return this.usoVehiculoService.findAllPorUsuario(usuarioId);
+  }
+
   @Get('notificaciones/:usuarioId')
   getNotificaciones(@Param('usuarioId') usuarioId: string) {
     return this.usoVehiculoService.getNotificacionesUsuario(+usuarioId);

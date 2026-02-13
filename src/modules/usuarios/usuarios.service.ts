@@ -110,4 +110,47 @@ export class UsuariosService {
       select: { id: true, nombre: true },
     });
   }
+
+  async miPerfil(usuarioId: number) {
+    return this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        esAdmin: true,
+        activo: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async cambiarContrasena(usuarioId: number, passwordActual: string, passwordNueva: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+    });
+
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    const passwordValida = await bcrypt.compare(passwordActual, usuario.passwordHash);
+    if (!passwordValida) {
+      throw new Error('Contraseña actual incorrecta');
+    }
+
+    const passwordHashNueva = await bcrypt.hash(passwordNueva, 10);
+
+    return this.prisma.usuario.update({
+      where: { id: usuarioId },
+      data: { passwordHash: passwordHashNueva },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        activo: true,
+      },
+    });
+  }
 }

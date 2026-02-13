@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Put, Delete, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Put, Delete, Body, UseGuards, Req } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { JwtGuard } from '@common/guards/jwt.guard';
 
@@ -6,6 +6,16 @@ import { JwtGuard } from '@common/guards/jwt.guard';
 @UseGuards(JwtGuard)
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
+
+  @Get('mi-perfil')
+  miPerfil(@Req() req: any) {
+    return this.usuariosService.miPerfil(req.user.userId);
+  }
+
+  @Put('cambiar-contrasena')
+  async cambiarContrasena(@Req() req: any, @Body() body: { passwordActual: string; passwordNueva: string }) {
+    return this.usuariosService.cambiarContrasena(req.user.userId, body.passwordActual, body.passwordNueva);
+  }
 
   @Get()
   findAll() {
