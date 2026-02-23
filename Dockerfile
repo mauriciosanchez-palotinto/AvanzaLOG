@@ -18,6 +18,9 @@ RUN npm install --legacy-peer-deps --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./.prisma
+COPY prisma ./prisma
+
+RUN npm run prisma:generate
 
 EXPOSE 3000
 
