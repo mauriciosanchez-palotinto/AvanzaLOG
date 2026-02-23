@@ -2,6 +2,8 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
@@ -12,6 +14,8 @@ RUN npm run build
 FROM node:18-alpine
 
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
