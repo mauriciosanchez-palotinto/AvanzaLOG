@@ -12,7 +12,22 @@ export class UsoVehiculoService {
 
   findAll() {
     return this.prisma.usoVehiculo.findMany({
-      include: {
+      select: {
+        id: true,
+        usuarioId: true,
+        vehiculoId: true,
+        fechaInicio: true,
+        fechaFin: true,
+        kmInicial: true,
+        kmFinal: true,
+        gasolinaInicial: true,
+        gasolinaFinal: true,
+        estadoDevolucion: true,
+        observaciones: true,
+        debeLavar: true,
+        lavo: true,
+        createdAt: true,
+        updatedAt: true,
         usuario: {
           select: {
             id: true,
@@ -33,10 +48,25 @@ export class UsoVehiculoService {
     });
   }
 
-  findActivos() {
-    return this.prisma.usoVehiculo.findMany({
+  async findActivos() {
+    const viajes = await this.prisma.usoVehiculo.findMany({
       where: { fechaFin: null },
-      include: {
+      select: {
+        id: true,
+        usuarioId: true,
+        vehiculoId: true,
+        fechaInicio: true,
+        fechaFin: true,
+        kmInicial: true,
+        kmFinal: true,
+        gasolinaInicial: true,
+        gasolinaFinal: true,
+        estadoDevolucion: true,
+        observaciones: true,
+        debeLavar: true,
+        lavo: true,
+        createdAt: true,
+        updatedAt: true,
         usuario: {
           select: {
             id: true,
@@ -55,16 +85,44 @@ export class UsoVehiculoService {
       },
       orderBy: { fechaInicio: 'desc' },
     });
+
+    // Calcular debeLavar dinámicamente para viajes activos
+    return Promise.all(viajes.map(async (viaje) => {
+      const viajesCompletados = await this.prisma.usoVehiculo.count({
+        where: {
+          vehiculoId: viaje.vehiculoId,
+          fechaFin: { not: null },
+        },
+      });
+      const nuevoContador = viajesCompletados + 1;
+      const debeLavar = nuevoContador % 4 === 0;
+      return { ...viaje, debeLavar };
+    }));
   }
 
   // Obtener viajes activos del usuario actual
-  findActivosPorUsuario(usuarioId: number) {
-    return this.prisma.usoVehiculo.findMany({
+  async findActivosPorUsuario(usuarioId: number) {
+    const viajes = await this.prisma.usoVehiculo.findMany({
       where: { 
         fechaFin: null,
         usuarioId: usuarioId,
       },
-      include: {
+      select: {
+        id: true,
+        usuarioId: true,
+        vehiculoId: true,
+        fechaInicio: true,
+        fechaFin: true,
+        kmInicial: true,
+        kmFinal: true,
+        gasolinaInicial: true,
+        gasolinaFinal: true,
+        estadoDevolucion: true,
+        observaciones: true,
+        debeLavar: true,
+        lavo: true,
+        createdAt: true,
+        updatedAt: true,
         usuario: {
           select: {
             id: true,
@@ -83,6 +141,19 @@ export class UsoVehiculoService {
       },
       orderBy: { fechaInicio: 'desc' },
     });
+
+    // Calcular debeLavar dinámicamente para viajes activos
+    return Promise.all(viajes.map(async (viaje) => {
+      const viajesCompletados = await this.prisma.usoVehiculo.count({
+        where: {
+          vehiculoId: viaje.vehiculoId,
+          fechaFin: { not: null },
+        },
+      });
+      const nuevoContador = viajesCompletados + 1;
+      const debeLavar = nuevoContador % 4 === 0;
+      return { ...viaje, debeLavar };
+    }));
   }
 
   // Obtener todos los viajes del usuario actual
@@ -91,7 +162,22 @@ export class UsoVehiculoService {
       where: { 
         usuarioId: usuarioId,
       },
-      include: {
+      select: {
+        id: true,
+        usuarioId: true,
+        vehiculoId: true,
+        fechaInicio: true,
+        fechaFin: true,
+        kmInicial: true,
+        kmFinal: true,
+        gasolinaInicial: true,
+        gasolinaFinal: true,
+        estadoDevolucion: true,
+        observaciones: true,
+        debeLavar: true,
+        lavo: true,
+        createdAt: true,
+        updatedAt: true,
         usuario: {
           select: {
             id: true,

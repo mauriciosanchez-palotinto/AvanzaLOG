@@ -80,6 +80,7 @@ export class VehiculosService {
     return this.prisma.vehiculo.update({
       where: { id },
       data: {
+        placa: data.placa,
         marca: data.marca,
         modelo: data.modelo,
         color: data.color,

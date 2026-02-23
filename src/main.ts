@@ -25,8 +25,11 @@ async function bootstrap() {
   );
 
   // CORS
+  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3001';
+  const corsOrigins = corsOrigin.split(',').map(origin => origin.trim());
+  
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: corsOrigins,
     credentials: true,
   });
 

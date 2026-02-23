@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -132,12 +132,12 @@ export class UsuariosService {
     });
 
     if (!usuario) {
-      throw new Error('Usuario no encontrado');
+      throw new BadRequestException('Usuario no encontrado');
     }
 
     const passwordValida = await bcrypt.compare(passwordActual, usuario.passwordHash);
     if (!passwordValida) {
-      throw new Error('Contraseña actual incorrecta');
+      throw new BadRequestException('Contraseña actual incorrecta');
     }
 
     const passwordHashNueva = await bcrypt.hash(passwordNueva, 10);
