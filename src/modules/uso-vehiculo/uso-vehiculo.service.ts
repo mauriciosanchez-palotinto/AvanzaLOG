@@ -1,6 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 // import { CirculacionService } from '../circulacion/services/circulacion.service';
 import { IniciarViajeDto } from './dto/iniciar-viaje.dto';
 
