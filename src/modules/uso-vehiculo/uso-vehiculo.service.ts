@@ -309,8 +309,8 @@ export class UsoVehiculoService {
       where: { id },
       data: {
         fechaFin: new Date(),
-        kmFinal: new Prisma.Decimal(kmFinal.toString()),
-        gasolinaFinal: gasolinaFinal ? new Prisma.Decimal(gasolinaFinal.toString()) : null,
+        kmFinal: kmFinal,
+        gasolinaFinal: gasolinaFinal || null,
         observaciones: observaciones || null,
         debeLavar: debeLavar,
       },
